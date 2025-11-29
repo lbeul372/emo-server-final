@@ -26,4 +26,3 @@ COPY . .
 # 8. Render 실행 명령어
 # Render가 할당해주는 포트(PORT) 변수를 받아 실행합니다.
 CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}"]
-```
