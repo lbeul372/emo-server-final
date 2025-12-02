@@ -27,18 +27,18 @@ ID2LABEL = {
     1: "당황",
     2: "분노",
     3: "불안",
-    4: "상처",  # <-- 앱에는 없는 감정
+    4: "상처",
     5: "슬픔"
 }
 
-# 앱(Flutter)에서 사용하는 영어 키 매핑 (상처는 제외됨)
+# 앱(Flutter)에서 사용하는 영어 키 매핑 (상처 추가됨)
 KOREAN_TO_ENGLISH = {
     "기쁨": "joy",
     "당황": "surprise",
     "분노": "anger",
     "불안": "fear",
+    "상처": "hurt",  # 새로 추가됨
     "슬픔": "sadness"
-    # "상처"는 여기에 없음 -> 로직에서 걸러냄
 }
 
 # ==========================================
@@ -49,20 +49,23 @@ app = FastAPI()
 class TextRequest(BaseModel):
     text: str
 
-# 선물 링크 (기존 유지)
+# 선물 링크 (기존 유지, hurt는 sadness 링크 사용)
 LINKS = {
     "joy": "https://gift.kakao.com/product/10618518",
     "surprise": "https://gift.kakao.com/product/11561204",
     "anger": "https://gift.kakao.com/product/9314157",
     "fear": "https://gift.kakao.com/product/4764917",
-    "sadness": "https://gift.kakao.com/product/11914005"
+    "sadness": "https://gift.kakao.com/product/11914005",
+    "hurt": "https://gift.kakao.com/product/11914005" # 임시로 슬픔 링크 사용
 }
 
 # ==========================================
-# 3. 핵심 로직: 2순위 감정 찾기
+# 3. 핵심 로직: 감정 확률 계산 및 상위 감정 선택
 # ==========================================
-def predict_emotion(sentence):
-    if model is None: return "기쁨" # 모델 없으면 그냥 기쁨 리턴
+def predict_emotion_probabilities(sentence):
+    if model is None: 
+        # 모델 로딩 실패 시 기본값 반환
+        return "joy", {"joy": 100.0, "sadness": 0.0} 
 
     # 1. 추론 (Inference)
     inputs = tokenizer(sentence, return_tensors="pt", truncation=True)
@@ -72,31 +75,20 @@ def predict_emotion(sentence):
         # Softmax로 확률(%) 계산
         probs = F.softmax(logits, dim=1)[0]
 
-    # 2. 확률 높은 순서대로 정렬 [(확률, 라벨인덱스), ...]
-    # 예: [(0.8, 4='상처'), (0.15, 5='슬픔'), ...]
-    probs_list = []
+    # 2. {영어 감정: 확률%} 딕셔너리 생성
+    prob_dict = {}
     for i, prob in enumerate(probs):
-        probs_list.append((prob.item(), i))
-    
-    # 확률 높은 순으로 정렬 (내림차순)
-    probs_list.sort(key=lambda x: x[0], reverse=True)
+        kor_label = ID2LABEL[i]
+        eng_label = KOREAN_TO_ENGLISH.get(kor_label)
+        if eng_label:
+            prob_dict[eng_label] = round(prob.item() * 100, 2)
+            
+    # 3. 확률이 가장 높은 감정 찾기
+    # 확률 내림차순 정렬
+    sorted_probs = sorted(prob_dict.items(), key=lambda item: item[1], reverse=True)
+    top_emotion = sorted_probs[0][0]
 
-    # 3. 앱에서 쓸 수 있는 감정인지 확인 (순서대로 체크)
-    final_emotion_kor = "슬픔" # 기본값
-    
-    for prob, idx in probs_list:
-        korean_label = ID2LABEL[idx]
-        
-        # 만약 이 라벨이 내 앱(영어키 매핑)에 있다면? -> 채택!
-        if korean_label in KOREAN_TO_ENGLISH:
-            final_emotion_kor = korean_label
-            print(f"👉 선택된 감정: {korean_label} (확률: {prob*100:.1f}%)")
-            break
-        else:
-            # 상처 처럼 앱에 없는 라벨이면? -> 패스하고 다음으로 높은 거 봄
-            print(f"🚫 스킵된 감정: {korean_label} (앱 미지원)")
-
-    return final_emotion_kor
+    return top_emotion, prob_dict
 
 # ==========================================
 # 4. API 엔드포인트
@@ -105,17 +97,16 @@ def predict_emotion(sentence):
 async def analyze(request: TextRequest):
     input_text = request.text.strip()
     
-    # AI 예측 수행
-    korean_emotion = predict_emotion(input_text)
+    # AI 예측 수행 (최상위 감정, 전체 확률 정보)
+    top_emotion, all_probs = predict_emotion_probabilities(input_text)
     
-    # 영어로 변환 (위에서 필터링했으므로 무조건 있음)
-    english_emotion = KOREAN_TO_ENGLISH[korean_emotion]
-    link = LINKS[english_emotion]
+    # 선물 링크 가져오기
+    link = LINKS.get(top_emotion, LINKS["sadness"])
 
     return {
         "text": input_text,
-        "emotion": english_emotion,
-        "original_emotion": korean_emotion,
+        "emotion": top_emotion,     # UI 표시용 메인 감정
+        "probabilities": all_probs, # '더 보기'용 전체 확률 정보
         "link": link
     }
 
