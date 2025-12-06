@@ -3,4 +3,4 @@ uvicorn[standard]
 pydantic
 transformers
 sqlalchemy
-psycopq2-binary
+pg8000
