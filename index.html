@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>emo</title>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #FFF9E6;
+            --primary-color: #FFB74D;
+            --seed-color: #FFD700;
+            --text-color: #333;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; 
+        }
+
+        header {
+            padding: 15px;
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            position: relative;
+        }
+
+        .menu-btn {
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 28px;
+            color: #333;
+        }
+
+        main {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center; 
+        }
+
+        .result-card {
+            text-align: center;
+            width: 100%;
+            max-width: 500px;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        .emotion-icon { font-size: 100px; margin-bottom: 20px; }
+        .emotion-text { font-size: 28px; font-weight: bold; margin-bottom: 10px; color: var(--primary-color); }
+        .gift-btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 30px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 20px;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .input-area {
+            background: white;
+            padding: 15px;
+            border-radius: 20px 20px 0 0;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+            display: flex;
+            gap: 10px;
+            max-width: 600px;
+            width: 100%;
+            margin: 0 auto;
+            box-sizing: border-box;
+        }
+
+        .input-wrapper {
+            flex: 1;
+            background: #F5F5F5;
+            border-radius: 30px;
+            padding: 0 20px;
+            display: flex;
+            align-items: center;
+        }
+
+        input {
+            width: 100%;
+            border: none;
+            background: transparent;
+            padding: 15px 0;
+            font-size: 16px;
+            outline: none;
+        }
+
+        .send-btn {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .drawer-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); z-index: 100; display: none;
+        }
+        .drawer {
+            position: fixed; top: 0; left: -300px; width: 280px; height: 100%;
+            background: var(--bg-color); z-index: 101;
+            transition: 0.3s;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        }
+        .drawer.open { left: 0; }
+        .drawer-header { padding: 30px 20px; font-size: 20px; font-weight: bold; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center;}
+        
+        .history-list { flex: 1; overflow-y: auto; padding: 10px; }
+        .history-item {
+            background: white;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            cursor: pointer;
+        }
+        .delete-btn { color: #ff6b6b; cursor: pointer; padding: 5px; }
+
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); z-index: 200; display: none; justify-content: center; align-items: flex-end;
+        }
+        .modal-content {
+            background: white; width: 100%; max-width: 600px;
+            border-radius: 20px 20px 0 0; padding: 30px;
+            animation: slideUp 0.3s;
+        }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        
+        .prob-bar-bg { height: 8px; background: #eee; border-radius: 4px; margin-top: 5px; overflow: hidden; }
+        .prob-bar-fill { height: 100%; border-radius: 4px; }
+        
+        .chip-container { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 15px; }
+        .chip {
+            padding: 8px 16px; border: 1px solid #ddd; border-radius: 20px;
+            cursor: pointer; background: white;
+        }
+        .chip:hover { background: #f0f0f0; }
+
+        .spinner { border: 4px solid #f3f3f3; border-top: 4px solid var(--primary-color); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 20px auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+    </style>
+</head>
+<body>
+
+    <div class="drawer-overlay" id="drawerOverlay" onclick="toggleDrawer()"></div>
+    <div class="drawer" id="drawer">
+        <div class="drawer-header">
+            History
+            <span class="material-icons-round" style="cursor:pointer" onclick="fetchHistory()">refresh</span>
+        </div>
+        <div class="history-list" id="historyList">
+            </div>
+    </div>
+
+    <header>
+        <button class="menu-btn" onclick="toggleDrawer()">
+            <span class="material-icons-round">menu</span>
+        </button>
+        emo
+    </header>
+
+    <main id="mainContent">
+        <div style="text-align: center; color: #888;">
+            <span class="material-icons-round" style="font-size: 50px; opacity: 0.5;">format_quote</span>
+            <p>분석할 내용을 입력해주세요</p>
+        </div>
+    </main>
+
+    <div class="input-area">
+        <div class="input-wrapper">
+            <input type="text" id="textInput" placeholder="오늘 무슨 일이 있었나요?" onkeypress="if(event.key==='Enter') analyze()">
+        </div>
+        <button class="send-btn" onclick="analyze()">
+            <span class="material-icons-round">arrow_upward</span>
+        </button>
+    </div>
+
+    <div class="modal-overlay" id="modalOverlay" onclick="if(event.target === this) closeModal()">
+        <div class="modal-content">
+            <div style="width: 40px; height: 4px; background: #ddd; margin: 0 auto 20px; border-radius: 2px;"></div>
+            <h3 style="text-align: center;">상세 분석</h3>
+            <div id="probList"></div>
+            
+            <hr style="margin: 20px 0; border: none; border-top: 1px solid #eee;">
+            
+            <h4>혹시 다른 감정인가요?</h4>
+            <div class="chip-container" id="reportChips">
+                </div>
+        </div>
+    </div>
+
+    <script>
+        const BASE_URL = "https://emo-server-final.onrender.com"; 
+        let currentLogId = null;
+        let isCorrectedGlobal = false;
+
+        const EMOTION_UI = {
+            "joy": { text: "Happy 😊", icon: "sentiment_very_satisfied", color: "orange" },
+            "surprise": { text: "Surprise 😲", icon: "sentiment_satisfied_alt", color: "purple" },
+            "anger": { text: "Anger 😡", icon: "sentiment_very_dissatisfied", color: "red" },
+            "fear": { text: "Fear 😨", icon: "sentiment_dissatisfied", color: "slategray" },
+            "sadness": { text: "Sadness 😢", icon: "sentiment_dissatisfied", color: "blue" },
+            "hurt": { text: "Hurt 💔", icon: "broken_heart", color: "pink" },
+            "default": { text: "Thinking... 🤔", icon: "help_outline", color: "grey" }
+        };
+
+        function getUserId() {
+            let userId = localStorage.getItem("user_uuid");
+            if (!userId) {
+                userId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                    var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+                    return v.toString(16);
+                });
+                localStorage.setItem("user_uuid", userId);
+            }
+            return userId;
+        }
+        const USER_ID = getUserId();
+
+        async function analyze() {
+            const input = document.getElementById("textInput");
+            const text = input.value.trim();
+            if (!text) return;
+
+            input.value = "";
+            input.blur(); 
+            const main = document.getElementById("mainContent");
+            main.innerHTML = `<div class="spinner"></div><p style="color:grey">감정을 분석 중이에요...</p>`;
+
+            try {
+                const response = await fetch(`${BASE_URL}/analyze`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ text: text, user_id: USER_ID })
+                });
+                
+                if (!response.ok) throw new Error("서버 오류");
+                const data = await response.json();
+                
+                renderResult(data);
+                fetchHistory(); 
+            } catch (e) {
+                alert("분석 실패: " + e.message);
+                main.innerHTML = `<p>오류가 발생했습니다.</p>`;
+            }
+        }
+
+        function renderResult(data) {
+            const ui = EMOTION_UI[data.emotion] || EMOTION_UI["default"];
+            currentLogId = data.log_id;
+            isCorrectedGlobal = data.is_corrected;
+            
+            window.currentProbs = data.probabilities;
+
+            const main = document.getElementById("mainContent");
+            main.innerHTML = `
+                <div class="result-card">
+                    <span class="material-icons-round emotion-icon" style="color:${ui.color}">${ui.icon}</span>
+                    <div class="emotion-text" style="color:${ui.color}">${ui.text}</div>
+                    ${data.is_corrected ? '<div style="color:grey; font-size:12px;">※ 수정된 결과입니다</div>' : ''}
+                    
+                    <a href="${data.link}" target="_blank" class="gift-btn" style="background:${ui.color}">
+                        <span class="material-icons-round">card_giftcard</span>
+                        위로의 선물 열어보기
+                    </a>
+                    
+                    <br><br>
+                    ${!data.is_corrected ? 
+                        `<u style="color:grey; cursor:pointer;" onclick="openModal()">더 자세히 알아보기</u>` : 
+                        ''}
+                </div>
+            `;
+        }
+
+        async function fetchHistory() {
+            try {
+                const response = await fetch(`${BASE_URL}/history/${USER_ID}`);
+                const logs = await response.json();
+                
+                const list = document.getElementById("historyList");
+                list.innerHTML = "";
+                
+                if (logs.length === 0) {
+                    list.innerHTML = "<p style='text-align:center; color:grey'>기록이 없습니다.</p>";
+                    return;
+                }
+
+                logs.forEach(log => {
+                    const ui = EMOTION_UI[log.emotion] || EMOTION_UI["default"];
+                    const div = document.createElement("div");
+                    div.className = "history-item";
+                    div.innerHTML = `
+                        <span class="material-icons-round" style="color:${ui.color}">${ui.icon}</span>
+                        <div style="flex:1; overflow:hidden;">
+                            <div style="font-weight:bold; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${log.text}</div>
+                            <div style="font-size:12px; color:grey">${log.date.substring(5)} ${log.is_corrected ? '(수정됨)' : ''}</div>
+                        </div>
+                        <span class="material-icons-round delete-btn" onclick="deleteLog(event, ${log.log_id})">close</span>
+                    `;
+                    div.onclick = (e) => {
+                        if(e.target.classList.contains('delete-btn')) return; // 삭제 버튼 클릭시 실행 X
+                        renderResult(log);
+                        toggleDrawer(); 
+                    };
+                    list.appendChild(div);
+                });
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        async function deleteLog(e, logId) {
+            e.stopPropagation(); 
+            if(!confirm("이 기록을 삭제하시겠습니까?")) return;
+
+            await fetch(`${BASE_URL}/history/${logId}`, { method: "DELETE" });
+            fetchHistory(); 
+            
+            if (currentLogId === logId) {
+                document.getElementById("mainContent").innerHTML = `
+                    <div style="text-align: center; color: #888;">
+                        <span class="material-icons-round" style="font-size: 50px; opacity: 0.5;">format_quote</span>
+                        <p>분석할 내용을 입력해주세요</p>
+                    </div>
+                `;
+            }
+        }
+
+        async function reportBug(label) {
+            if (!currentLogId) return;
+            
+            try {
+                const response = await fetch(`${BASE_URL}/report`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ log_id: currentLogId, user_label: label })
+                });
+                
+                const data = await response.json();
+                alert("반영되었습니다! " + data.new_emotion);
+                closeModal();
+                
+                const ui = EMOTION_UI[data.new_emotion];
+                renderResult({
+                    emotion: data.new_emotion,
+                    link: data.new_link,
+                    log_id: currentLogId,
+                    is_corrected: true,
+                    probabilities: null 
+                });
+                fetchHistory();
+
+            } catch (e) {
+                alert("오류 발생");
+            }
+        }
+
+        function toggleDrawer() {
+            const drawer = document.getElementById("drawer");
+            const overlay = document.getElementById("drawerOverlay");
+            const isOpen = drawer.classList.contains("open");
+            
+            if (isOpen) {
+                drawer.classList.remove("open");
+                overlay.style.display = "none";
+            } else {
+                drawer.classList.add("open");
+                overlay.style.display = "block";
+                fetchHistory(); 
+            }
+        }
+
+        function openModal() {
+            if (isCorrectedGlobal) return;
+            
+            const modal = document.getElementById("modalOverlay");
+            const probList = document.getElementById("probList");
+            const reportChips = document.getElementById("reportChips");
+            
+            let html = "";
+            const probs = window.currentProbs || {};
+            const sorted = Object.entries(probs).sort((a,b) => b[1] - a[1]);
+            
+            sorted.forEach(([key, val]) => {
+                const ui = EMOTION_UI[key];
+                if (!ui) return;
+                html += `
+                    <div style="margin-bottom:10px;">
+                        <div style="display:flex; justify-content:space-between; font-size:14px;">
+                            <span>${ui.text.split(" ")[0]}</span>
+                            <span>${val.toFixed(1)}%</span>
+                        </div>
+                        <div class="prob-bar-bg">
+                            <div class="prob-bar-fill" style="width:${val}%; background:${ui.color}"></div>
+                        </div>
+                    </div>
+                `;
+            });
+            probList.innerHTML = html;
+
+            let chipsHtml = "";
+            Object.keys(EMOTION_UI).forEach(key => {
+                if (key === 'default') return;
+                chipsHtml += `<div class="chip" onclick="reportBug('${key}')">${EMOTION_UI[key].text.split(" ")[0]}</div>`;
+            });
+            reportChips.innerHTML = chipsHtml;
+
+            modal.style.display = "flex";
+        }
+
+        function closeModal() {
+            document.getElementById("modalOverlay").style.display = "none";
+        }
+
+        fetchHistory();
+
+    </script>
+</body>
+</html>
