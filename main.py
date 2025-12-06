@@ -11,6 +11,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 from datetime import datetime
 import random
+import os
 
 DATABASE_URL = "postgresql://lbeul372:mhi6qvmdTSSp2rGpAYX8dA33IMnFwGqm@dpg-d4pqolm3jp1c7395lr6g-a/emo_db"
 
@@ -46,7 +47,6 @@ class TrainingData(Base):
     id = Column(Integer, primary_key=True, index=True)
     text = Column(Text)        
     label = Column(String)       
-    original_ai_label = Column(String) 
     created_at = Column(DateTime, default=datetime.now)
 
 Base.metadata.create_all(bind=engine)
@@ -125,8 +125,11 @@ class ReportRequest(BaseModel):
     user_label: str
 
 @app.get("/")
-async def health_check():
-    return {"status": "awake"}
+async def read_root():
+    file_path = os.path.join(os.path.dirname(__file__), "index.html")
+    if os.path.exists(file_path):
+        return FileResponse(file_path)
+    return {"error": "index.html file not found inside server"}
 
 @app.post("/analyze")
 async def analyze(request: AnalyzeRequest, db: Session = Depends(get_db)):
@@ -193,8 +196,7 @@ async def report_bug(request: ReportRequest, db: Session = Depends(get_db)):
 
     train_data = TrainingData(
         text=log.text,
-        label=request.user_label,      
-        original_ai_label=log.ai_emotion 
+        label=request.user_label
     )
     db.add(train_data)
     
