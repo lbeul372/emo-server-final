@@ -2,7 +2,7 @@
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 
-DATABASE_URL = "postgresql://lbeul372:mhi6qvmdTSSp2rGpAYX8dA33IMnFwGqm@dpg-d4pqolm3jp1c7395lr6g-a/emo_db"
+DATABASE_URL = "postgresql://lbeul372:mhi6qvmdTSSp2rGpAYX8dA33IMnFwGqm@dpg-d4pqolm3jp1c7395lr6g-a.oregon-postgres.render.com/emo_db"
 
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+pg8000://", 1)
