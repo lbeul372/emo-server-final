@@ -238,5 +238,30 @@ async def get_training_data(db: Session = Depends(get_db)):
     reports = db.query(TrainingData).order_by(TrainingData.created_at.desc()).all()
     return reports
 
+@app.get("/admin/all_logs")
+async def get_all_logs(db: Session = Depends(get_db)):
+    logs = db.query(PredictionLog).order_by(PredictionLog.created_at.desc()).all()
+    
+    result = []
+    for log in logs:
+        if log.is_corrected:
+            display_emotion = log.user_emotion
+            display_link = log.user_link
+        else:
+            display_emotion = log.ai_emotion
+            display_link = log.ai_link
+            
+        result.append({
+            "log_id": log.id,
+            "user_id": log.user_id, 
+            "text": log.text,
+            "emotion": display_emotion, 
+            "link": display_link,       
+            "probabilities": log.probabilities,
+            "is_corrected": log.is_corrected,
+            "date": log.created_at.strftime("%Y-%m-%d %H:%M:%S")
+        })
+    return result
+
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
